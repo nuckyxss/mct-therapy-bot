@@ -1,6 +1,18 @@
+const express = require('express');
 const TelegramBot = require('node-telegram-bot-api');
 const axios = require('axios');
 require('dotenv').config();
+
+// Express server setup
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.get("/", (req, res) => res.send("OK"));
+
+// Start Express server
+app.listen(PORT, () => {
+  console.log(`🌐 Express server running on port ${PORT}`);
+});
 
 // Konfiguracja z ENV
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
