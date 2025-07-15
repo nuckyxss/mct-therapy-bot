@@ -57,7 +57,7 @@ function verifyTelegramSignature(req, res, next) {
 // Environment variables
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const WEBHOOK_URL = process.env.WEBHOOK_URL;
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 const AI_MODEL = process.env.AI_MODEL || 'nousresearch/deephermes-3-llama-3-8b-preview:free';
 
 // Admin configuration (optional)
@@ -94,14 +94,14 @@ if (!WEBHOOK_URL) {
   process.exit(1);
 }
 
-if (!OPENROUTER_API_KEY) {
-  console.error('❌ OPENROUTER_API_KEY is required');
+if (!GOOGLE_API_KEY) {
+  console.error('❌ GOOGLE_API_KEY is required');
   process.exit(1);
 }
 
 // Telegram Bot API base URL
 const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
-const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
 // Store conversation context (in production, use Redis or database)
 const conversations = new Map();
@@ -196,33 +196,65 @@ function delayReply(messageLength = 0) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Function to get AI response from OpenRouter
+// Function to get AI response from Google Gemini
 async function getAIResponse(messages) {
   try {
-    console.log('🤖 Sending request to OpenRouter...');
+    console.log('🤖 Sending request to Google Gemini...');
     
-    const response = await axios.post(OPENROUTER_API_URL, {
-      model: AI_MODEL,
-      messages: messages,
-      temperature: 0.8,
-      max_tokens: 300,
-      top_p: 0.9
-    }, {
-      headers: {
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://github.com/nuckyxss/tgbot-cursor-js',
-        'X-Title': 'MCT Therapy Assistant Bot'
+    // Convert messages to Gemini format
+    const conversationText = messages
+      .filter(msg => msg.role !== 'system')
+      .map(msg => `${msg.role}: ${msg.content}`)
+      .join('\n\n');
+    
+    const systemPrompt = messages.find(msg => msg.role === 'system')?.content || '';
+    const fullPrompt = `${systemPrompt}\n\nRozmowa:\n${conversationText}\n\nOdpowiedz jako asystent:`;
+    
+    const response = await axios.post(
+      `${GEMINI_API_URL}?key=${GOOGLE_API_KEY}`,
+      {
+        contents: [{
+          role: 'user',
+          parts: [{ text: fullPrompt }]
+        }],
+        generationConfig: {
+          temperature: 0.8,
+          maxOutputTokens: 300,
+          topP: 0.9
+        },
+        safetySettings: [
+          {
+            category: 'HARM_CATEGORY_HARASSMENT',
+            threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+          },
+          {
+            category: 'HARM_CATEGORY_HATE_SPEECH', 
+            threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+          },
+          {
+            category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+            threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+          },
+          {
+            category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+            threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+          }
+        ]
       },
-      timeout: AI_REQUEST_TIMEOUT
-    });
+      {
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        timeout: AI_REQUEST_TIMEOUT
+      }
+    );
 
-    if (!response.data?.choices?.[0]?.message?.content) {
-      throw new Error('Invalid AI response format');
+    if (!response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+      throw new Error('Invalid Gemini response format');
     }
 
-    const aiMessage = response.data.choices[0].message.content;
-    console.log('✅ AI response received');
+    const aiMessage = response.data.candidates[0].content.parts[0].text;
+    console.log('✅ Gemini response received');
     return aiMessage;
     
   } catch (error) {
@@ -231,7 +263,7 @@ async function getAIResponse(messages) {
       throw new Error('AI service timeout');
     }
     
-    console.error('❌ Error getting AI response:', error.response?.data || error.message);
+    console.error('❌ Error getting Gemini response:', error.response?.data || error.message);
     throw error;
   }
 }
