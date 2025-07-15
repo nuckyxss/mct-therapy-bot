@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: telegram-bot-webhook
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false  # This will need to be set manually in Render dashboard
+      - key: WEBHOOK_URL
+        sync: false  # This will need to be set manually in Render dashboard
+      - key: OPENROUTER_API_KEY
+        sync: false  # This will need to be set manually in Render dashboard
+      - key: AI_MODEL
+        value: anthropic/claude-3-haiku
+    healthCheckPath: /health 

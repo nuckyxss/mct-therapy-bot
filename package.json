@@ -1,0 +1,25 @@
+{
+  "name": "telegram-bot-webhook",
+  "version": "1.0.0",
+  "description": "Production-ready Telegram bot with webhook integration",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "echo \"No linting configured\"",
+    "audit": "npm audit",
+    "update": "npm update"
+  },
+  "keywords": ["telegram", "bot", "webhook", "express", "nodejs"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.2",
+    "axios": "^1.10.0",
+    "dotenv": "^16.6.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+} 
