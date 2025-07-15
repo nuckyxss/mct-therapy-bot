@@ -11,15 +11,22 @@
     "audit": "npm audit",
     "update": "npm update"
   },
-  "keywords": ["telegram", "bot", "webhook", "express", "nodejs"],
+  "keywords": [
+    "telegram",
+    "bot",
+    "webhook",
+    "express",
+    "nodejs"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.21.2",
     "axios": "^1.10.0",
-    "dotenv": "^16.6.1"
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "node-telegram-bot-api": "^0.66.0"
   },
   "engines": {
     "node": ">=18.0.0"
   }
-} 
+}
