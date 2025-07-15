@@ -4,7 +4,8 @@
       "Bash(node:*)",
       "Bash(npm audit:*)",
       "Bash(npm outdated)",
-      "Bash(npm install)"
+      "Bash(npm install)",
+      "Bash(npm test)"
     ],
     "deny": []
   }

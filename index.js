@@ -249,12 +249,32 @@ async function getAIResponse(messages) {
       }
     );
 
-    if (!response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-      throw new Error('Invalid Gemini response format');
+    // Enhanced response parsing with detailed error handling
+    const responseData = response.data;
+    
+    // Check for blocked content (safety filter)
+    if (responseData.candidates?.[0]?.finishReason === 'SAFETY') {
+      console.warn('⚠️ Gemini response blocked by safety filter');
+      throw new Error('Response blocked by safety filter');
+    }
+    
+    // Check for other finish reasons
+    if (responseData.candidates?.[0]?.finishReason === 'RECITATION') {
+      console.warn('⚠️ Gemini response blocked due to recitation');
+      throw new Error('Response blocked due to recitation');
+    }
+    
+    // Extract the actual text content
+    const candidate = responseData.candidates?.[0];
+    const content = candidate?.content?.parts?.[0]?.text;
+    
+    if (!content) {
+      console.error('❌ Invalid Gemini response structure:', JSON.stringify(responseData, null, 2));
+      throw new Error('Invalid Gemini response format - no text content found');
     }
 
-    const aiMessage = response.data.candidates[0].content.parts[0].text;
-    console.log('✅ Gemini response received');
+    const aiMessage = content.trim();
+    console.log('✅ Gemini response received:', aiMessage.substring(0, 100) + '...');
     return aiMessage;
     
   } catch (error) {
@@ -263,7 +283,17 @@ async function getAIResponse(messages) {
       throw new Error('AI service timeout');
     }
     
-    console.error('❌ Error getting Gemini response:', error.response?.data || error.message);
+    // Enhanced error logging for debugging
+    if (error.response) {
+      console.error('❌ Gemini API error:', {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data
+      });
+    } else {
+      console.error('❌ Error getting Gemini response:', error.message);
+    }
+    
     throw error;
   }
 }
@@ -510,10 +540,16 @@ Przykład: "Chcę ćwiczenie 1" lub "Jak robić detached mindfulness?"`;
           // Provide specific error messages based on error type
           if (aiError.message === 'AI service timeout') {
             responseText = `⏰ Przepraszam, odpowiedź trwa dłużej niż zwykle. Spróbuj ponownie za chwilę 🌿`;
+          } else if (aiError.message === 'Response blocked by safety filter') {
+            responseText = `⚠️ Przepraszam, nie mogę odpowiedzieć na to pytanie ze względów bezpieczeństwa. Spróbuj zadać pytanie w inny sposób 🌿`;
+          } else if (aiError.message === 'Response blocked due to recitation') {
+            responseText = `⚠️ Przepraszam, nie mogę zacytować tego tekstu. Spróbuj przeformułować pytanie 🌿`;
           } else if (aiError.response?.status === 429) {
             responseText = `⏳ Zbyt wiele żądań - poczekaj chwilę i spróbuj ponownie 🌿`;
           } else if (aiError.response?.status >= 500) {
             responseText = `🔧 Serwis AI jest tymczasowo niedostępny. Spróbuj później 🌿`;
+          } else if (aiError.message?.includes('Invalid Gemini response format')) {
+            responseText = `🔧 Problem z formatem odpowiedzi AI. Spróbuj ponownie za chwilę 🌿`;
           } else {
             responseText = `Oops... coś poszło nie tak 😅 Spróbuj napisać do mnie za chwilę 🌿`;
           }
